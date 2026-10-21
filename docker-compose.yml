@@ -1,0 +1,30 @@
+# Production-like stack: AI Teacher + PostgreSQL. Usage: docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aiteacher
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: aiteacher
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U aiteacher']
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ['3000:3000']
+    environment:
+      DATABASE_URL: postgres://aiteacher:${POSTGRES_PASSWORD:-change-me}@db:5432/aiteacher
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      # set to "true" only when serving over plain HTTP (no TLS proxy) for a local demo
+      INSECURE_COOKIES: ${INSECURE_COOKIES:-true}
+    volumes: [uploads:/app/data/uploads]
+volumes:
+  pgdata:
+  uploads:
