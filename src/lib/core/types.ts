@@ -16,12 +16,34 @@ export interface Landmarks {
   neck: [number, number];
 }
 
+export type GestureKind = 'idle' | 'welcome' | 'explain' | 'point' | 'think' | 'praise' | 'listen';
+export const GESTURE_KINDS: GestureKind[] = ['idle', 'welcome', 'explain', 'point', 'think', 'praise', 'listen'];
+
+/** Face landmarks per video frame, sampled at `fps` (from the Avatar studio tracker). */
+export interface LandmarkTrack { fps: number; frames: Landmarks[] }
+
+/** One recorded pose or gesture of the teacher: a still photo or a short video clip. */
+export interface AvatarPose {
+  id: string;
+  name: string;
+  kind: GestureKind;
+  media: 'image' | 'video';
+  src: string;
+  landmarks: Landmarks;
+  track?: LandmarkTrack;
+  /** green/blue-screen key for videos filmed against a plain backdrop */
+  chroma?: { color: [number, number, number]; tolerance: number } | null;
+}
+
 export interface AvatarConfig {
   name: string;
+  /** base idle photo (always present) */
   image: string;
   landmarks: Landmarks;
   voiceGender: 'male' | 'female';
   charisma: number;
+  /** optional gesture library: extra photos / video clips with hand movements */
+  poses?: AvatarPose[];
 }
 
 export interface LessonSection {
@@ -96,6 +118,10 @@ export interface SessionUser {
   institutionId: string | null;
   institutionName: string | null;
   institutionType: InstitutionType | null;
+  /** two-step login (TOTP) is active for this account */
+  mfaEnabled: boolean;
+  /** policy demands MFA for this role but it is not set up yet */
+  mfaRequired: boolean;
 }
 
 export interface AnswerResult {

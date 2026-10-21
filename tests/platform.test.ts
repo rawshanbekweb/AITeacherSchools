@@ -20,7 +20,9 @@ beforeAll(async () => { db = await testDb(); });
 describe('authentication', () => {
   test('valid credentials work, wrong password does not, hashes never leak', async () => {
     expect(await status(login(db, 'teacher', 'nope', 'classroom'))).toBe(401);
-    const { user, token } = await login(db, 'teacher', 'Teacher#2026', 'classroom');
+    const r = await login(db, 'teacher', 'Teacher#2026', 'classroom');
+    if (r.mfa) throw new Error('unexpected MFA');
+    const { user, token } = r;
     expect(user.username).toBe('teacher');
     expect(token.length).toBeGreaterThan(30);
     const [row] = await db.select().from(t.users).where(eq(t.users.username, 'teacher'));

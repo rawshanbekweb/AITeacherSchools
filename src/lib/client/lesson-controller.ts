@@ -7,6 +7,7 @@ import { mountVisual, type VisualHandle } from './visuals';
 import { Ears, Voice } from './speech';
 import { get, post } from './api';
 import { phrase } from './phrases';
+import { gestureForSentence } from '@/lib/core/gestures';
 
 export type Panel = 'attendance' | 'question' | 'follow' | 'quiz' | 'summary' | null;
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
@@ -194,6 +195,7 @@ export class LessonController {
         this.set({ panel: 'attendance' });
         if (!back) {
           this.avatar?.react('smile');
+          this.avatar?.gesture('welcome', 4);
           if (await this.say(this.lesson.greeting, id)) await this.say(this.P('attendance'), id);
         }
         break;
@@ -216,7 +218,7 @@ export class LessonController {
         if (await this.say(this.P('more'), id, 'listening')) this.followUpCountdown(id);
         break;
       case S.KNOWLEDGE_CHECK:
-        if (prev === S.TEACHING) { this.avatar?.react('smile'); await this.say(this.P('quizIntro'), id); }
+        if (prev === S.TEACHING) { this.avatar?.react('smile'); this.avatar?.gesture('explain'); await this.say(this.P('quizIntro'), id); }
         else if (fromQuestion || back) await this.say(this.P('resume'), id);
         if (this.alive(id)) void this.showQuiz(id);
         break;
@@ -288,12 +290,15 @@ export class LessonController {
       if (pos.sentence === 0 && !this.announced[pos.section]) {
         this.announced[pos.section] = true;
         this.avatar?.react('brows');
+        this.avatar?.gesture('explain');
         if (!(await this.say(`${pos.section === 0 ? '' : this.P('nextSection') + ' '}${sec.title}.`, id))) return;
       }
       if (pos.sentence >= sec.sentences.length) { this.dispatch('SECTION_DONE'); continue; }
       const sentence = sec.sentences[pos.sentence];
       this.visual?.focus(sentence, pos.sentence);
       this.addTranscript('a', sentence);
+      const g = gestureForSentence(sentence, { sectionStart: pos.sentence === 0, charisma: this.avatarConfig?.charisma });
+      if (g) this.avatar?.gesture(g);
       if (!(await this.say(sentence, id))) return;
       if (/!/.test(sentence)) this.avatar?.react('smile');
       this.dispatch({ type: 'PROGRESS', sentence: pos.sentence + 1 });

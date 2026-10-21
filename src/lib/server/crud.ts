@@ -115,7 +115,7 @@ function scopeWhere(ctx: Ctx, entity: string): SQL | undefined {
 
 function serialize(entity: string, row: Record<string, unknown>) {
   if (entity === 'users') {
-    const { passwordHash: _p, ...rest } = row;
+    const { passwordHash: _p, totpSecret: _t, totpLastStep: _s, ...rest } = row;
     return rest;
   }
   if (entity === 'materials') {
@@ -265,6 +265,12 @@ export async function updateEntity(ctx: Ctx, entity: string, id: string, body: R
     }
     if (patch.password) patch.passwordHash = await hashPassword(String(patch.password));
     delete patch.password;
+    if (body.resetMfa === true) {
+      // lost phone: an administrator clears the second factor; the user enrols again on next login
+      patch.totpEnabled = false;
+      patch.totpSecret = null;
+      patch.totpLastStep = null;
+    }
   }
   if (entity === 'materials') {
     if (ctx.user.role === 'teacher' && patch.status && patch.status !== row.status) fail(403, 'Materialni faqat administrator tasdiqlaydi');
@@ -280,8 +286,8 @@ export async function updateEntity(ctx: Ctx, entity: string, id: string, body: R
       if (groupIds.length) await tx.insert(t.lessonGroups).values(groupIds.map((groupId) => ({ lessonId: id, groupId })));
     }
   });
-  if (entity === 'users' && (patch.status === 'blocked' || patch.passwordHash)) await revokeUserSessions(ctx.db, id);
-  const what = entity === 'users' && patch.status ? `status=${patch.status}` : Object.keys(patch).filter((k) => !['passwordHash', 'updatedAt'].includes(k)).join(', ');
+  if (entity === 'users' && (patch.status === 'blocked' || patch.passwordHash || body.resetMfa === true)) await revokeUserSessions(ctx.db, id);
+  const what = entity === 'users' && body.resetMfa === true ? 'MFA tiklandi' : entity === 'users' && patch.status ? `status=${patch.status}` : Object.keys(patch).filter((k) => !['passwordHash', 'updatedAt', 'totpSecret', 'totpLastStep'].includes(k)).join(', ');
   await audit(ctx.db, ctx.user, `${entity}.update`, entity, id, what);
   return getEntity(ctx, entity, id).catch(() => ({ id }));
 }

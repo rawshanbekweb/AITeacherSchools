@@ -10,5 +10,6 @@ export default async function ClassroomPage() {
   const user = await currentUser();
   if (!user) redirect('/login?next=/classroom');
   if (user.role === 'technician' || user.role === 'student') redirect('/admin');
+  if (user.mfaRequired) redirect('/admin/profile?mfa=required');
   return <ClassroomApp user={user} />;
 }

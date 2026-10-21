@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Lock, Pencil, Plus, Search, Trash2, Unlock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock, Pencil, Plus, Search, ShieldOff, Trash2, Unlock } from 'lucide-react';
 import { del, get, post, put } from '@/lib/client/api';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -66,6 +66,10 @@ export function EntityTable({ entity }: { entity: string }) {
     if (next === 'blocked' && !confirm(`${row.username} bloklansinmi? Uning barcha seanslari tugatiladi.`)) return;
     try { await put(`users/${row.id}`, { status: next }); toast(next === 'blocked' ? 'Bloklandi' : 'Kirish tiklandi', 'ok'); load(); } catch (e) { toast((e as Error).message, 'bad'); }
   }
+  async function resetMfa(row: Row) {
+    if (!confirm(`${row.username} uchun ikki bosqichli kirish o‘chirilsinmi? (masalan, telefon yo‘qolganda) Foydalanuvchi qayta sozlashi kerak bo‘ladi.`)) return;
+    try { await put(`users/${row.id}`, { resetMfa: true }); toast('MFA tiklandi', 'ok'); load(); } catch (e) { toast((e as Error).message, 'bad'); }
+  }
   const edit = (row: Row | 'new') => (entity === 'lessons' ? router.push(`/admin/lessons/${row === 'new' ? 'new' : row.id}`) : setEditing(row));
 
   return (
@@ -99,6 +103,7 @@ export function EntityTable({ entity }: { entity: string }) {
                   {cols.map((c) => <td key={c.k} className="px-4 py-3 align-top text-slate-700">{c.render ? c.render(r[c.k], r, refs) : String(r[c.k] ?? '—')}</td>)}
                   <td className="px-4 py-2.5 text-right whitespace-nowrap">
                     <div className="inline-flex gap-1">
+                      {entity === 'users' && canWrite && r.id !== me.id && !!r.totpEnabled && <button className="btn btn-sm" onClick={() => resetMfa(r)} title="MFA’ni tiklash"><ShieldOff size={14} /></button>}
                       {entity === 'users' && canWrite && r.id !== me.id && <button className="btn btn-sm" onClick={() => toggleBlock(r)} title={r.status === 'active' ? 'Bloklash' : 'Tiklash'}>{r.status === 'active' ? <Lock size={14} /> : <Unlock size={14} />}</button>}
                       {entity === 'lessons' && <Link className="btn btn-sm" href={`/admin/lessons/${r.id}`} title="Ko‘rish / tahrirlash"><Pencil size={14} /></Link>}
                       {entity !== 'lessons' && (canWrite || (canEditOwnInst && r.id === me.institutionId)) && !sc.readOnly && <button className="btn btn-sm" onClick={() => edit(r)} title="Tahrirlash"><Pencil size={14} /></button>}

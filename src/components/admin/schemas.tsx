@@ -67,7 +67,7 @@ export const SCHEMAS: Record<string, Schema> = {
   },
   users: {
     title: 'Foydalanuvchilar', description: 'Rollar va kirish huquqlari. Bloklangan foydalanuvchining barcha seanslari darhol tugatiladi.', scoped: true, write: ADM,
-    cols: [inst, { k: 'username', label: 'Login', render: (v) => <code className="text-xs">{String(v)}</code> }, { k: 'fullName', label: 'F.I.Sh.' }, { k: 'role', label: 'Rol', render: (v) => ROLE_LABEL[v as Role] }, { k: 'status', label: 'Holat', render: badge }, { k: 'lastLoginAt', label: 'Oxirgi kirish', render: (v) => (v ? new Date(String(v)).toLocaleString('uz-UZ') : '—') }],
+    cols: [inst, { k: 'username', label: 'Login', render: (v) => <code className="text-xs">{String(v)}</code> }, { k: 'fullName', label: 'F.I.Sh.' }, { k: 'role', label: 'Rol', render: (v) => ROLE_LABEL[v as Role] }, { k: 'status', label: 'Holat', render: badge }, { k: 'totpEnabled', label: 'MFA', render: (v) => (v ? <span className="badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/15 ring-inset">yoqilgan</span> : <span className="text-slate-400">—</span>) }, { k: 'lastLoginAt', label: 'Oxirgi kirish', render: (v) => (v ? new Date(String(v)).toLocaleString('uz-UZ') : '—') }],
     fields: [{ k: 'username', label: 'Login', req: true }, { k: 'fullName', label: 'F.I.Sh.', req: true }, { k: 'role', label: 'Rol', type: 'select', options: ROLE_LABEL, req: true }, { k: 'status', label: 'Holat', type: 'select', options: { active: 'faol', blocked: 'bloklangan' } }, { k: 'password', label: 'Parol (kamida 8 belgi; tahrirlashda bo‘sh qoldiring)', type: 'password', full: true }],
     filters: [{ k: 'role', label: 'Rol', options: ROLE_LABEL }, { k: 'status', label: 'Holat', options: { active: 'faol', blocked: 'bloklangan' } }],
   },

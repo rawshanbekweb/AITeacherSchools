@@ -18,8 +18,9 @@ export async function testDb(): Promise<Db> {
 }
 
 export async function ctxFor(db: Db, username: string, password: string, portal: 'admin' | 'classroom' = 'admin'): Promise<Ctx> {
-  const { user } = await login(db, username, password, portal);
-  return { db, user };
+  const r = await login(db, username, password, portal);
+  if (r.mfa) throw new Error('MFA required for ' + username);
+  return { db, user: r.user };
 }
 
 export async function userId(db: Db, username: string) {

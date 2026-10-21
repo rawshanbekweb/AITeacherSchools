@@ -20,6 +20,7 @@ export const ADMIN_NAV: NavItem[] = [
   { id: 'devices', title: 'Qurilmalar', icon: 'MonitorSmartphone', roles: [...ADM, 'teacher', 'technician'], group: 'Tizim' },
   { id: 'avatar', title: 'Avatar studiyasi', icon: 'UserRoundCog', roles: ADM, group: 'Tizim' },
   { id: 'audit', title: 'Audit jurnali', icon: 'ScrollText', roles: ADM, group: 'Tizim' },
+  { id: 'profile', title: 'Profil va xavfsizlik', icon: 'ShieldCheck', roles: [...EDU, 'technician'], group: 'Tizim' },
 ];
 
 export const navAllowed = (id: string, role: Role) => !!ADMIN_NAV.find((n) => n.id === id)?.roles.includes(role);

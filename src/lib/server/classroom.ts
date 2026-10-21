@@ -46,12 +46,26 @@ export async function getAvatar(ctx: Ctx, institutionId?: string | null) {
 }
 
 const pt = z.tuple([z.number().min(0).max(10000), z.number().min(0).max(10000)]);
+// Own uploads, bundled assets, or (legacy) inline images only — never arbitrary external URLs.
+const mediaSrc = z.string().max(8_000_000).refine((v) => v.startsWith('data:image/') || /^\/?assets\//.test(v) || /^\/api\/avatar\/media\/[a-f0-9]{32}\.(png|jpg|webp|mp4|webm|mov)$/.test(v), 'Media manzili noto‘g‘ri');
+const landmarksSchema = z.object({ eyeL: pt, eyeR: pt, mouthL: pt, mouthC: pt, mouthR: pt, chin: pt, neck: pt, eyeW: z.number().min(2).max(500), eyeH: z.number().min(2).max(500) });
+const poseSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().trim().min(1).max(80),
+  kind: z.enum(['idle', 'welcome', 'explain', 'point', 'think', 'praise', 'listen']),
+  media: z.enum(['image', 'video']),
+  src: mediaSrc,
+  landmarks: landmarksSchema,
+  track: z.object({ fps: z.number().min(1).max(60), frames: z.array(landmarksSchema).max(3600) }).optional(),
+  chroma: z.object({ color: z.tuple([z.number().min(0).max(255), z.number().min(0).max(255), z.number().min(0).max(255)]), tolerance: z.number().min(0).max(1) }).nullable().optional(),
+});
 const avatarSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  image: z.string().max(8_000_000).refine((v) => v.startsWith('data:image/') || /^\/?assets\//.test(v), 'Rasm formati noto‘g‘ri'),
-  landmarks: z.object({ eyeL: pt, eyeR: pt, mouthL: pt, mouthC: pt, mouthR: pt, chin: pt, neck: pt, eyeW: z.number().min(2).max(500), eyeH: z.number().min(2).max(500) }),
+  image: mediaSrc,
+  landmarks: landmarksSchema,
   voiceGender: z.enum(['male', 'female']),
   charisma: z.number().min(0).max(1),
+  poses: z.array(poseSchema).max(16).optional(),
 });
 
 export async function saveAvatar(ctx: Ctx, institutionId: string | undefined, input: unknown) {

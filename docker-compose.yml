@@ -22,6 +22,8 @@ services:
       AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
       AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET to a long random string}
+      REQUIRE_MFA_FOR_ADMINS: ${REQUIRE_MFA_FOR_ADMINS:-false}
       # set to "true" only when serving over plain HTTP (no TLS proxy) for a local demo
       INSECURE_COOKIES: ${INSECURE_COOKIES:-true}
     volumes: [uploads:/app/data/uploads]

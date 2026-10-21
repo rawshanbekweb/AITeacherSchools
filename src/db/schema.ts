@@ -54,6 +54,11 @@ export const users = pgTable('users', {
   role: text('role', { enum: ['super_admin', 'inst_admin', 'director', 'teacher', 'student', 'technician'] }).notNull(),
   status: text('status', { enum: ['active', 'blocked'] }).notNull().default('active'),
   passwordHash: text('password_hash').notNull(),
+  /** AES-GCM encrypted TOTP secret (set during enrolment, active once totpEnabled) */
+  totpSecret: text('totp_secret'),
+  totpEnabled: boolean('totp_enabled').notNull().default(false),
+  /** last accepted TOTP time step — blocks replay of a code within its window */
+  totpLastStep: integer('totp_last_step'),
   lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
   createdAt: created(),
   updatedAt: updated(),
@@ -63,6 +68,8 @@ export const authSessions = pgTable('auth_sessions', {
   tokenHash: text('token_hash').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   portal: text('portal').notNull(),
+  /** 'mfa' = password verified, waiting for the one-time code; only 'full' sessions authenticate */
+  stage: text('stage', { enum: ['full', 'mfa'] }).notNull().default('full'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: created(),
 }, (t) => [index('auth_sessions_user_idx').on(t.userId)]);

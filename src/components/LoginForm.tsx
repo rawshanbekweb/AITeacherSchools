@@ -16,6 +16,8 @@ export function LoginForm({ portal, next }: { portal: 'admin' | 'classroom'; nex
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mfa, setMfa] = useState(false);
+  const [code, setCode] = useState('');
   const target = next && next.startsWith('/') && !next.startsWith('//') ? next : portal === 'admin' ? '/admin' : '/classroom';
 
   async function submit(e: React.FormEvent) {
@@ -23,7 +25,11 @@ export function LoginForm({ portal, next }: { portal: 'admin' | 'classroom'; nex
     setBusy(true);
     setError('');
     try {
-      await post('auth/login', { username, password, portal });
+      if (mfa) await post('auth/mfa', { code });
+      else {
+        const r = await post<{ mfaRequired?: boolean }>('auth/login', { username, password, portal });
+        if (r.mfaRequired) { setMfa(true); setBusy(false); return; }
+      }
       router.replace(target);
       router.refresh();
     } catch (err) {
@@ -40,11 +46,20 @@ export function LoginForm({ portal, next }: { portal: 'admin' | 'classroom'; nex
           <h1 className="text-2xl font-bold text-white">{portal === 'admin' ? 'Boshqaruv paneliga kirish' : 'Darsni boshlash uchun kiring'}</h1>
           <p className="mt-1 text-sm text-slate-400">Login va parolingizni kiriting</p>
         </div>
-        <label className="label">Login<input className="input" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
-        <label className="label">Parol<input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+        {mfa ? (
+          <label className="label">Autentifikator ilovasidagi 6 xonali kod
+            <input className="input text-center font-mono text-2xl tracking-[.4em]" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required />
+          </label>
+        ) : (
+          <>
+            <label className="label">Login<input className="input" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
+            <label className="label">Parol<input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+          </>
+        )}
         {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/50 px-3 py-2 text-sm text-red-200">{error}</p>}
-        <button className="btn btn-primary btn-lg" disabled={busy}>{busy && <Loader2 className="animate-spin" size={18} />}Kirish</button>
-        <details className="text-sm text-slate-400">
+        <button className="btn btn-primary btn-lg" disabled={busy || (mfa && code.length !== 6)}>{busy && <Loader2 className="animate-spin" size={18} />}{mfa ? 'Tasdiqlash' : 'Kirish'}</button>
+        {mfa && <button type="button" className="btn btn-ghost" onClick={() => { setMfa(false); setCode(''); setError(''); }}>Orqaga</button>}
+        {!mfa && <details className="text-sm text-slate-400">
           <summary className="cursor-pointer select-none">Demo hisoblar</summary>
           <div className="mt-3 grid gap-1">
             {DEMO[portal].map(([u, p, r]) => (
@@ -53,7 +68,7 @@ export function LoginForm({ portal, next }: { portal: 'admin' | 'classroom'; nex
               </button>
             ))}
           </div>
-        </details>
+        </details>}
       </form>
     </main>
   );

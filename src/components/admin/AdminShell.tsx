@@ -2,9 +2,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Backpack, BookOpen, CalendarDays, ChartColumn, Circle, KeyRound, Landmark, LayoutDashboard, Library, LogOut, Menu, MonitorSmartphone, NotebookPen, PlayCircle, School, ScrollText, UserRoundCog, Users, X, type LucideIcon } from 'lucide-react';
+import { Backpack, BookOpen, CalendarDays, ChartColumn, Circle, KeyRound, Landmark, LayoutDashboard, Library, LogOut, Menu, MonitorSmartphone, NotebookPen, PlayCircle, School, ScrollText, ShieldCheck, UserRoundCog, Users, X, type LucideIcon } from 'lucide-react';
 
-const ICONS: Record<string, LucideIcon> = { Backpack, BookOpen, CalendarDays, ChartColumn, KeyRound, Landmark, LayoutDashboard, Library, MonitorSmartphone, NotebookPen, School, ScrollText, UserRoundCog, Users };
+const ICONS: Record<string, LucideIcon> = { Backpack, BookOpen, CalendarDays, ChartColumn, KeyRound, Landmark, LayoutDashboard, Library, MonitorSmartphone, NotebookPen, School, ScrollText, ShieldCheck, UserRoundCog, Users };
 import type { SessionUser } from '@/lib/core/types';
 import { ADMIN_NAV, ROLE_LABEL } from '@/lib/core/admin-nav';
 import { post } from '@/lib/client/api';

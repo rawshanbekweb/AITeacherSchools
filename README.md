@@ -18,7 +18,7 @@ Production:
 ```bash
 npm run build && npm start
 # yoki to‘liq stek PostgreSQL bilan:
-docker compose up --build  # http://localhost:3000
+APP_SECRET=$(openssl rand -hex 32) docker compose up --build  # http://localhost:3000
 ```
 
 | Sahifa | Manzil |
@@ -50,16 +50,37 @@ Productionda `SEED_DEMO_DATA=false` qo‘ying va birinchi Super Adminni yarating
 | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` | Serverdagi neyron ovoz: `uz-UZ-SardorNeural/MadinaNeural`, `ru-RU-DmitryNeural`… Avatar lablari haqiqiy audio signalga moslashadi. Bo‘lmasa — brauzer ovozi. |
 | `UPLOAD_DIR` | Yuklangan material fayllari (faqat ruxsatli `/api/files/[id]` orqali beriladi). |
 | `SEED_DEMO_DATA` | `false` — bo‘sh bazaga demo ma’lumot qo‘shilmaydi. |
+| `APP_SECRET` | MFA sirlarini shifrlash kaliti (productionda majburiy). Bo‘lmasa dev uchun `data/.app-secret` yaratiladi. |
+| `REQUIRE_MFA_FOR_ADMINS` | `true` — Super Admin va muassasa adminlari MFA’ni yoqmaguncha hech narsa qila olmaydi. |
 
-## Jonli avatar
+## Jonli avatar va qo‘l harakatlari
 
-`src/lib/client/avatar.ts` — bitta portretdan WebGL sheyder orqali gapiradigan o‘qituvchi: vizemalar asosida lab
-sinxronizatsiyasi (og‘iz ichi, tishlar), ko‘z qisish, nigoh, qosh, tabassum, bosh irg‘ash/egish, burilish parallaksi, nafas.
-Neyron TTS ulanganda og‘iz ochilishi audio amplitudasidan olinadi.
+`src/lib/client/avatar.ts` — o‘qituvchining o‘z surati va video kliplaridan WebGL orqali jonli avatar:
+vizemalar asosida lab sinxronizatsiyasi (og‘iz ichi, tishlar), ko‘z qisish, nigoh, qosh, tabassum, bosh irg‘ash/egish,
+burilish parallaksi, nafas va butun tananing tebranishi. Neyron TTS ulanganda og‘iz audio amplitudasidan harakatlanadi.
 
-**O‘z rasmingiz:** Admin → *Avatar studiyasi* → *Yangi rasm* → ko‘z, og‘iz, iyak, bo‘yin nuqtalarini surib moslang →
-*Saqlash*. Eng yaxshi natija: yuz to‘g‘riga qaragan, og‘iz yopiq, fon shaffof PNG/WebP. Mashhur shaxs yuzi uchun uning yozma
-roziligi kerak.
+**Qo‘l harakatlari (ishoralar kutubxonasi).** Bitta suratdan qo‘llarni "ochib" bo‘lmaydi — qo‘l ortidagi tana rasmda yo‘q.
+Shuning uchun avatar o‘qituvchining **qo‘shimcha suratlari yoki qisqa video kliplari**dan foydalanadi:
+
+| Vazifa | Qachon ishlatiladi |
+|---|---|
+| Tinch holat (video) | doimiy fon harakati — surat o‘rniga "tirik" kadr |
+| Salomlashish | dars boshida |
+| Tushuntirish | yangi bo‘lim, savol shaklidagi va ba’zi oddiy gaplarda |
+| Doskaga ko‘rsatish | «qarang», «mana», «rasmda», «смотрите» kabi so‘zlarda |
+| O‘ylash / Tinglash | AI javob tayyorlayotganda / savol tinglayotganda |
+| Maqtash | «barakalla», «ofarin», to‘g‘ri javobda |
+
+Pozalar yuz nuqtalari bo‘yicha avtomatik moslashtiriladi va silliq almashadi; video kliplarda yuz har kadrda kuzatiladi,
+shuning uchun ishora paytida ham lab sinxronizatsiyasi ishlaydi.
+
+**Admin → Avatar studiyasi:** rasm yoki video yuklang → yuz nuqtalari MediaPipe bilan **avtomatik** aniqlanadi (brauzerda,
+tashqi serverga yuborilmaydi) → videoda «Kadrlarni kuzatish» → kerak bo‘lsa «Fonni olib tashlash» (rasm) yoki xromakey
+(yashil/ko‘k fonli video) → vazifasini tanlang → *Saqlash*. Prevyuda har bir ishorani sinab ko‘rish mumkin.
+
+**Suratga olish bo‘yicha tavsiyalar:** kamera shtativda, kadr va yorug‘lik barcha pozalarda bir xil; bel yoki tizzagacha,
+qo‘llar kadrga to‘liq sig‘sin; og‘iz yopiq; klip 2–5 soniya — tinch holatdan boshlanib, ishora qilib, yana tinch holatga
+qaytsin; fon bir xil rangli devor. Mashhur shaxs yuzi uchun uning yozma roziligi kerak.
 
 ## Arxitektura
 
@@ -85,10 +106,22 @@ scripts/e2e.mjs           Playwright: to‘liq dars + admin brauzerda
 LISTENING_FOR_QUESTION → ANSWERING → CHECKING_FOLLOW_UP → KNOWLEDGE_CHECK → COMPLETED, + PAUSED_BY_TEACHER va RECOVERY.
 Holat har o‘zgarishda serverga saqlanadi; sahifa yangilansa yoki aloqa uzilsa dars aynan shu joydan tiklanadi.
 
-**Xavfsizlik** (TZ §3, §13): parollar scrypt bilan xeshlanadi; sessiya tokeni bazada faqat SHA-256 xesh ko‘rinishida;
+**Xavfsizlik** (TZ §3, §13): ikki bosqichli kirish (TOTP — Google/Microsoft Authenticator, Aegis; sirlar AES-256-GCM
+bilan shifrlangan, kodni takrorlash bloklangan, admin yo‘qolgan telefon uchun MFA’ni tiklay oladi; `REQUIRE_MFA_FOR_ADMINS`
+bilan adminlarga majburiy); Admin → *Profil va xavfsizlik*da parol almashtirish (boshqa seanslar yopiladi); parollar scrypt bilan xeshlanadi; sessiya tokeni bazada faqat SHA-256 xesh ko‘rinishida;
 HttpOnly/SameSite/Secure cookie; login urinishlari cheklangan; har bir API so‘rovda rol va muassasa serverda tekshiriladi
 (boshqa muassasa obyekti — 404); mijoz yuborgan `institutionId` inobatga olinmaydi; Zod validatsiya; cross-origin
 so‘rovlar rad etiladi; audit jurnali; texnik xodim shaxsiy ma’lumotlarni ko‘rmaydi.
+
+## Zaxira nusxa va tiklash (TZ §13)
+
+```bash
+DATABASE_URL=postgres://… ./scripts/backup.sh backups          # pg_dump + yuklangan fayllar
+DATABASE_URL=postgres://… ./scripts/restore.sh backups/<sana>   # pg_restore --clean (ilovani to‘xtatib)
+```
+
+DATABASE_URL bo‘lmasa (PGlite), `data/pglite` katalogi arxivlanadi. Zaxira → o‘chirish → tiklash sikli PostgreSQL 16 da
+sinab ko‘rilgan; productionda tiklashni muntazam (masalan, oyiga bir marta) sinov bazasida tekshirib turing.
 
 ## Tekshiruvlar
 
@@ -110,5 +143,5 @@ npm run test:e2e        # ishlab turgan serverga qarshi (BASE=http://localhost:3
 | §8 Kamera | ✅ sinov/ko‘rish, yozib olinmaydi, yuzni aniqlash yo‘q (TZ talabi bo‘yicha alohida bosqich) |
 | §9 Materiallar | ✅ 12 ta animatsion sahna, metama’lumotlar, moderatsiya |
 | §11 Arxitektura | ✅ Next.js + PostgreSQL + alohida AI moduli; Docker, CI |
-| §13 MFA | ⏳ keyingi bosqich (imtiyozli hisoblar uchun TOTP) |
-| §9 3-daraja | ⏳ neyron video-avatar provayderi (avatar interfeysi `speak/speakAudio/setMood` orqali ulanadi) |
+| §13 MFA | ✅ TOTP, majburiy qilish siyosati, admin tomonidan tiklash; zaxira/tiklash skriptlari |
+| §9 3-daraja | ✅ ishoralar kutubxonasi (surat/video), yuz kuzatuvi, lab sinxronizatsiyasi. ⏳ generativ neyron video-avatar — keyingi tadqiqot bosqichi |
